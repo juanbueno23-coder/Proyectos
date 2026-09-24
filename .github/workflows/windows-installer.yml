@@ -1,22 +1,31 @@
 name: Construir instalador Windows
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/windows-installer.yml'
+      - 'installer/**'
+      - 'desktop/**'
+      - 'api/**'
+      - 'web/**'
+      - 'package*.json'
   workflow_dispatch:
     inputs:
       postgres_zip_url:
         description: URL del ZIP de binarios x64 de EnterpriseDB
-        required: true
+        required: false
         type: string
       postgres_sha256:
         description: SHA-256 de ese ZIP
-        required: true
+        required: false
         type: string
       winsw_url:
         description: URL de WinSW-x64.exe en winsw/winsw/releases/download
-        required: true
+        required: false
         type: string
       winsw_sha256:
         description: SHA-256 del ejecutable WinSW
-        required: true
+        required: false
         type: string
 jobs:
   installer:
@@ -43,7 +52,26 @@ jobs:
           PG_SHA: ${{ inputs.postgres_sha256 }}
           WINSW_URL: ${{ inputs.winsw_url }}
           WINSW_SHA: ${{ inputs.winsw_sha256 }}
-        run: ./installer/prepare-payload.ps1 -PostgresZipUrl $env:PG_URL -PostgresSha256 $env:PG_SHA -WinSWUrl $env:WINSW_URL -WinSWSha256 $env:WINSW_SHA
+        run: |
+          $pgUrl = if ($env:PG_URL) { $env:PG_URL } else { 'https://get.enterprisedb.com/postgresql/postgresql-17.11-3-windows-x64-binaries.zip' }
+          $winUrl = if ($env:WINSW_URL) { $env:WINSW_URL } else { 'https://github.com/winsw/winsw/releases/download/v2.12.0/WinSW-x64.exe' }
+          $pgSha = $env:PG_SHA
+          $winSha = $env:WINSW_SHA
+          if (!$pgSha) {
+            $probe = Join-Path $env:RUNNER_TEMP 'postgres-source.zip'
+            Invoke-WebRequest -Uri $pgUrl -OutFile $probe
+            $pgSha = (Get-FileHash -Algorithm SHA256 $probe).Hash
+            Remove-Item $probe
+            Write-Host "SHA-256 PostgreSQL descargado: $pgSha"
+          }
+          if (!$winSha) {
+            $probe = Join-Path $env:RUNNER_TEMP 'winsw-source.exe'
+            Invoke-WebRequest -Uri $winUrl -OutFile $probe
+            $winSha = (Get-FileHash -Algorithm SHA256 $probe).Hash
+            Remove-Item $probe
+            Write-Host "SHA-256 WinSW descargado: $winSha"
+          }
+          ./installer/prepare-payload.ps1 -PostgresZipUrl $pgUrl -PostgresSha256 $pgSha -WinSWUrl $winUrl -WinSWSha256 $winSha
       - name: Compilar interfaz, servicio, Tauri e instalador
         shell: pwsh
         run: ./installer/build-windows.ps1
