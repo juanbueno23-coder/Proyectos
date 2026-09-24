@@ -1,0 +1,40 @@
+name: Validar instalación Windows
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/windows-validate.yml'
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  install-smoke:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Descargar instalador compilado en Windows
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $runs = gh run list --workflow windows-installer.yml --branch main --status success --limit 1 --json databaseId | ConvertFrom-Json
+          if (!$runs -or !$runs[0].databaseId) { throw 'Falta compilación Windows exitosa' }
+          New-Item -ItemType Directory -Force installer/Output | Out-Null
+          gh run download $runs[0].databaseId --name GestionIglesiaPro-Setup-Windows-x64 --dir installer/Output
+          if ($LASTEXITCODE -ne 0) { throw 'No se pudo descargar el instalador' }
+      - name: Instalar y probar servicios, operaciones y restauración
+        shell: pwsh
+        run: ./installer/validate-windows.ps1 -InstallerPath ./installer/Output/GestionIglesiaPro-Setup-0.1.0.exe -DisposableVM
+      - name: Conservar registro si falla
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: registro-instalacion-windows
+          path: ${{ runner.temp }}/iglesia-installer.log
+          if-no-files-found: ignore
