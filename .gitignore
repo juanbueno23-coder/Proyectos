@@ -1,0 +1,8 @@
+node_modules/
+**/dist/
+**/target/
+installer/payload/
+*.log
+.env
+*.dump
+*.sha256
