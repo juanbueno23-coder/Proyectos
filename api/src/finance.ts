@@ -1,0 +1,6 @@
+import {z} from 'zod';
+export const money=z.number().int().positive().max(999999999999);
+export const entrySchema=z.object({kind:z.enum(['ingreso','gasto']),society_id:z.number().int().positive(),account_id:z.number().int().positive().optional(),occurred_on:z.iso.date(),category:z.string().trim().min(2).max(100),description:z.string().trim().max(500).default(''),amount_cents:money,method:z.string().trim().min(2).max(60).default('Efectivo')});
+export const budgetSchema=z.object({society_id:z.number().int().positive(),year:z.number().int().min(2000).max(2200),month:z.number().int().min(1).max(12),amount_cents:z.number().int().nonnegative().max(999999999999)});
+export const outlineSchema=z.object({title:z.string().trim().min(2).max(250),base_text:z.string().trim().max(500).default(''),introduction:z.string().trim().max(3000).default(''),point_one:z.string().trim().max(3000).default(''),point_two:z.string().trim().max(3000).default(''),point_three:z.string().trim().max(3000).default(''),application:z.string().trim().max(3000).default(''),conclusion:z.string().trim().max(3000).default(''),notes:z.string().trim().max(3000).default('')});
+export function canApprove(actor:string,creator:string,status:string){return actor!==creator&&status==='pendiente'}

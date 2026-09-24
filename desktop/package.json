@@ -1,0 +1,1 @@
+{"name":"@iglesia/desktop","private":true,"scripts":{"dev":"tauri dev","build":"tauri build --no-bundle"},"devDependencies":{"@tauri-apps/cli":"^2.0.0"}}

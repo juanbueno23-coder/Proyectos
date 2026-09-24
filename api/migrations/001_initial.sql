@@ -1,0 +1,15 @@
+CREATE TABLE IF NOT EXISTS schema_migrations(version text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE institution(id int PRIMARY KEY DEFAULT 1 CHECK(id=1), name text NOT NULL, address text NOT NULL DEFAULT '', phone text NOT NULL DEFAULT '');
+CREATE TABLE roles(id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY, name text NOT NULL UNIQUE);
+CREATE TABLE permissions(code text PRIMARY KEY);
+CREATE TABLE role_permissions(role_id bigint NOT NULL REFERENCES roles(id), permission_code text NOT NULL REFERENCES permissions(code), PRIMARY KEY(role_id,permission_code));
+CREATE TABLE users(id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY, username text NOT NULL UNIQUE, password_hash text NOT NULL, role_id bigint NOT NULL REFERENCES roles(id), active boolean NOT NULL DEFAULT true, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE sessions(token_hash text PRIMARY KEY, user_id bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE, expires_at timestamptz NOT NULL);
+CREATE TABLE members(id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY, first_name text NOT NULL, last_name text NOT NULL, phone text, email text, status text NOT NULL DEFAULT 'activo' CHECK(status IN ('activo','inactivo')), created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE audit(id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY, actor_id bigint REFERENCES users(id) ON DELETE SET NULL, action text NOT NULL, entity text NOT NULL, entity_id text, detail jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now());
+INSERT INTO institution(id,name) VALUES(1,'Iglesia Roca de Salvación') ON CONFLICT DO NOTHING;
+INSERT INTO roles(name) VALUES('Administrador'),('Secretaría'),('Consulta') ON CONFLICT DO NOTHING;
+INSERT INTO permissions(code) VALUES('institution.write'),('users.read'),('users.write'),('roles.read'),('roles.write'),('members.read'),('members.write'),('audit.read'),('backup.manage') ON CONFLICT DO NOTHING;
+INSERT INTO role_permissions(role_id,permission_code) SELECT r.id,p.code FROM roles r CROSS JOIN permissions p WHERE r.name='Administrador' ON CONFLICT DO NOTHING;
+INSERT INTO role_permissions(role_id,permission_code) SELECT r.id,p.code FROM roles r JOIN permissions p ON p.code IN ('members.read','members.write') WHERE r.name='Secretaría' ON CONFLICT DO NOTHING;
+INSERT INTO role_permissions(role_id,permission_code) SELECT r.id,p.code FROM roles r JOIN permissions p ON p.code IN ('members.read') WHERE r.name='Consulta' ON CONFLICT DO NOTHING;

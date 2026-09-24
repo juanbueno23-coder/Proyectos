@@ -1,0 +1,56 @@
+name: Construir instalador Windows
+on:
+  workflow_dispatch:
+    inputs:
+      postgres_zip_url:
+        description: URL del ZIP de binarios x64 de EnterpriseDB
+        required: true
+        type: string
+      postgres_sha256:
+        description: SHA-256 de ese ZIP
+        required: true
+        type: string
+      winsw_url:
+        description: URL de WinSW-x64.exe en winsw/winsw/releases/download
+        required: true
+        type: string
+      winsw_sha256:
+        description: SHA-256 del ejecutable WinSW
+        required: true
+        type: string
+jobs:
+  installer:
+    runs-on: windows-2022
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      - name: Instalar Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          'C:\Program Files (x86)\Inno Setup 6' >> $env:GITHUB_PATH
+      - name: Preparar dependencias del instalador
+        shell: pwsh
+        env:
+          PG_URL: ${{ inputs.postgres_zip_url }}
+          PG_SHA: ${{ inputs.postgres_sha256 }}
+          WINSW_URL: ${{ inputs.winsw_url }}
+          WINSW_SHA: ${{ inputs.winsw_sha256 }}
+        run: ./installer/prepare-payload.ps1 -PostgresZipUrl $env:PG_URL -PostgresSha256 $env:PG_SHA -WinSWUrl $env:WINSW_URL -WinSWSha256 $env:WINSW_SHA
+      - name: Compilar interfaz, servicio, Tauri e instalador
+        shell: pwsh
+        run: ./installer/build-windows.ps1
+      - name: Publicar artefacto privado del flujo
+        uses: actions/upload-artifact@v4
+        with:
+          name: GestionIglesiaPro-Setup-Windows-x64
+          path: installer/Output/GestionIglesiaPro-Setup-0.1.0.exe
+          if-no-files-found: error
+          retention-days: 7

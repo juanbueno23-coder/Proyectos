@@ -1,0 +1,2 @@
+import pg from 'pg';import assert from 'node:assert/strict';
+const c=new pg.Client(process.env.RESTORED_DATABASE_URL);await c.connect();try{const q=await c.query('SELECT last_name,status FROM members WHERE first_name=$1',['Prueba']);assert.equal(q.rows[0].last_name,'Actualizada');assert.equal(q.rows[0].status,'inactivo');console.log('Restauración aislada: miembro recuperado correctamente');}finally{await c.end()}

@@ -1,0 +1,3 @@
+import{test}from'node:test';import{strict as assert}from'node:assert';import{canApprove,entrySchema}from'./finance.js';
+test('separa creador y aprobador',()=>{assert.equal(canApprove('1','1','pendiente'),false);assert.equal(canApprove('2','1','pendiente'),true);assert.equal(canApprove('2','1','pagado'),false)});
+test('el dinero se recibe en centavos enteros positivos',()=>{assert.equal(entrySchema.safeParse({kind:'gasto',society_id:1,occurred_on:'2026-09-24',category:'Mantenimiento',amount_cents:1520}).success,true);assert.equal(entrySchema.safeParse({kind:'gasto',society_id:1,occurred_on:'2026-09-24',category:'Mantenimiento',amount_cents:15.2}).success,false)});

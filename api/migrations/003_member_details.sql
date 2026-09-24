@@ -1,0 +1,2 @@
+ALTER TABLE members ADD COLUMN family_code text, ADD COLUMN cedula text, ADD COLUMN family_relation text, ADD COLUMN sex text, ADD COLUMN birth_date date, ADD COLUMN civil_status text, ADD COLUMN address text, ADD COLUMN joined_on date, ADD COLUMN ministry text, ADD COLUMN baptized boolean, ADD COLUMN converted boolean, ADD COLUMN lives_with_family boolean, ADD COLUMN children_count int CHECK(children_count>=0), ADD COLUMN notes text;
+CREATE UNIQUE INDEX members_cedula_unique ON members(cedula) WHERE cedula IS NOT NULL AND cedula<>'';

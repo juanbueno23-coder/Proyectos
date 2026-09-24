@@ -1,0 +1,4 @@
+import{test}from'node:test';import{strict as assert}from'node:assert';import{weekSchema,defaultCult,validateCult,itemSchema}from'./program.js';
+test('programación acepta lunes y rechaza fecha distinta',()=>{assert.equal(weekSchema.safeParse('2026-09-28').success,true);assert.equal(weekSchema.safeParse('2026-09-27').success,false)});
+test('alternancia propuesta, la selección manual cambia el culto',()=>{assert.equal(defaultCult('2026-09-28',2,'Damas').cult_name,'Culto de Caballeros');assert.doesNotThrow(()=>validateCult([], {day_offset:2,cult_name:'Actividad extraordinaria',manual_override:true}));assert.throws(()=>validateCult([], {day_offset:2,cult_name:'Damas y Caballeros',manual_override:true}))});
+test('oportunidad exige actividad y limita duración',()=>{assert.equal(itemSchema.safeParse({position:1,activity:'Oración',minutes:20}).success,true);assert.equal(itemSchema.safeParse({position:1,activity:'',minutes:500}).success,false)});
