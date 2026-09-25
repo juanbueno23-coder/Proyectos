@@ -13,7 +13,12 @@ $p=Start-Process -FilePath $installer -ArgumentList @('/VERYSILENT','/SUPPRESSMS
 if($p.ExitCode -ne 0){throw "Instalador falló ($($p.ExitCode)); revise el registro en TEMP"}
 $services=@('GestionIglesiaPostgres','GestionIglesiaAPI')
 foreach($s in $services){
-  $current=Get-Service $s -ErrorAction SilentlyContinue
+  $current=$null
+  for($attempt=0;$attempt -lt 20;$attempt++){
+    $current=Get-Service $s -ErrorAction SilentlyContinue
+    if($current -and $current.Status -eq 'Running'){break}
+    Start-Sleep -Seconds 1
+  }
   if(!$current -or $current.Status -ne 'Running'){
     Write-Host "Diagnóstico: directorio de aplicación=$(Test-Path $appDir), directorio de datos=$(Test-Path $data), registro=$(Test-Path $log)"
     foreach($name in @('install-error.log','initdb.log')){

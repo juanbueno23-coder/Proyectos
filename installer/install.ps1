@@ -57,3 +57,12 @@ $xml=[System.IO.File]::ReadAllText((Join-Path $AppDir 'service\service.xml')).Re
 [System.IO.File]::WriteAllText((Join-Path $data 'service.xml'),$xml)
 & $service install;if($LASTEXITCODE -ne 0){throw 'No se pudo instalar el servicio'}
 & $service start;if($LASTEXITCODE -ne 0){throw 'No se pudo iniciar el servicio'}
+$ready=$false
+for($attempt=0;$attempt -lt 30;$attempt++){
+  try {
+    $response=Invoke-RestMethod 'http://127.0.0.1:4317/health' -TimeoutSec 2
+    if($response.ok){$ready=$true;break}
+  }catch{}
+  Start-Sleep -Seconds 1
+}
+if(!$ready){throw 'El servicio API se registró pero no respondió en 30 segundos; revise service.err.log'}
