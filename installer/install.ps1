@@ -14,7 +14,9 @@ $node=Join-Path $AppDir 'runtime\node.exe'
 $pwdFile=Join-Path $data 'pg-password.tmp'
 $config=Join-Path $data 'database-url.txt'
 New-Item -ItemType Directory -Force $data,(Join-Path $data 'backups') | Out-Null
-icacls $data /inheritance:r /grant:r 'SYSTEM:(OI)(CI)F' 'Administrators:(OI)(CI)F' | Out-Null
+$userSid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+icacls $data /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' "*$($userSid):(OI)(CI)F" | Out-Null
+if($LASTEXITCODE -ne 0){throw 'No se pudieron proteger los datos locales'}
 if(!(Test-Path $pgData)){
   $bytes=New-Object byte[] 32
   $rng=[System.Security.Cryptography.RandomNumberGenerator]::Create()

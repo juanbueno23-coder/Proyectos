@@ -7,7 +7,8 @@ $reqFile=Join-Path $data 'restore-request.json'
 if(!(Test-Path $reqFile)){throw 'Solicite primero la restauración desde la aplicación'}
 $req=Get-Content $reqFile -Raw | ConvertFrom-Json
 $recoveryLog=Join-Path $data 'restore-audit.jsonl'
-$hash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($Code))).ToLowerInvariant()
+$hasher=[Security.Cryptography.SHA256]::Create()
+try {$hash=[BitConverter]::ToString($hasher.ComputeHash([Text.Encoding]::UTF8.GetBytes($Code))).Replace('-','').ToLowerInvariant()} finally {$hasher.Dispose()}
 if($req.name -ne $Name -or $req.code_hash -ne $hash -or [datetime]$req.expires -lt [datetime]::UtcNow){throw 'Solicitud inválida o vencida'}
 Remove-Item $reqFile
 if(!(Test-Path $file) -or !(Test-Path "$file.sha256")){throw 'Respaldo inexistente'}
