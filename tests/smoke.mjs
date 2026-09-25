@@ -12,15 +12,15 @@ assert.equal((await req('/setup','POST',{username:'otro_admin',password:smokePas
 const login=await req('/auth/login','POST',{username:'prueba_admin',password:smokePassword});assert.equal(login.status,200);token=login.data.token;
 const roles=(await req('/api/roles')).data;const consulta=roles.find(r=>r.name==='Consulta');
 const user=await req('/api/users','POST',{username:'prueba_lector',password:smokePassword,role_id:Number(consulta.id)});assert.equal(user.status,201);
-const m=await req('/api/members','POST',{first_name:'Prueba',last_name:'Temporal',status:'activo',family_code:'F-PRUEBA',cedula:'000-0000000-0',sex:'Femenino',birth_date:'1990-01-01',address:'Dirección de prueba',children_count:2});assert.equal(m.status,201);
-const id=m.data.id;assert.equal((await req(`/api/members/${id}`,'PUT',{first_name:'Prueba',last_name:'Actualizada',status:'inactivo',family_code:'F-PRUEBA',cedula:'000-0000000-0',sex:'Femenino',birth_date:'1990-01-01',address:'Dirección de prueba',children_count:2})).data.status,'inactivo');
+const m=await req('/api/members','POST',{first_name:'Prueba',last_name:'Temporal',status:'activo',new_family:true,cedula:'000-0000000-0',sex:'Femenino',birth_date:'1990-01-01',address:'Dirección de prueba',children_count:2});assert.equal(m.status,201);
+const id=m.data.id;assert.match(m.data.family_code,/^F-\d{4,}$/);assert.equal((await req('/api/families')).data.some(f=>f.code===m.data.family_code),true);assert.equal((await req(`/api/members/${id}`,'PUT',{first_name:'Prueba',last_name:'Actualizada',status:'activo',family_code:m.data.family_code,cedula:'000-0000000-0',sex:'Femenino',birth_date:'1990-01-01',address:'Dirección de prueba',children_count:2})).data.status,'activo');
 assert.equal((await req('/api/members')).data.find(x=>x.id===id).last_name,'Actualizada');assert.equal((await req('/api/members')).data.find(x=>x.id===id).children_count,2);
 assert.equal((await req('/api/audit')).data.some(a=>a.action==='create'&&a.entity==='members'),true);
 const week='2026-09-28';const base=`/api/program/weeks/${week}`;
 assert.equal((await req(base+'/init','POST')).status,201);
 let current=(await req(base)).data;assert.equal(current.cults.find(c=>c.day_offset===2).cult_name,'Culto de Caballeros');
 assert.equal((await req(base+'/cults/2','PUT',{day_offset:2,cult_name:'Culto de Damas',starts_at:'19:00',topic_word:'Perdón',memory_instruction:'Busque un versículo que contenga Perdón',manual_override:true})).status,200);
-let item=(await req(base+'/cults/2/items','POST',{position:1,activity:'Oración',member_id:Number(m.data.id),starts_at:'19:10',minutes:10,topic:'Por las familias',scripture:'Salmo 23',status:'Pendiente'}));assert.equal(item.status,201);
+let item=(await req(base+'/cults/2/items','POST',{position:1,activity:'Oración',member_id:Number(m.data.id),starts_at:'19:10',minutes:10,topic:'Por las familias',scripture:'Salmo 23',status:'Pendiente'}));assert.equal(item.status,201);assert.equal((await req(base+'/cults/2/items','POST',{position:2,activity:'Lectura',responsible_name:'Nombre manual'})).status,400);assert.equal((await req('/api/program/assignable-members')).data.some(x=>String(x.id)===String(id)),true);
 const itemId=item.data.cults.find(c=>c.day_offset===2).items[0].id;
 assert.equal((await req(base+'/invitations','POST',{event_date:'2026-09-30',entity:'Iglesia vecina',activity:'Culto especial',modality:'Presencial'})).status,201);
 assert.equal((await req(base+'/publish','POST')).data.revision,1);

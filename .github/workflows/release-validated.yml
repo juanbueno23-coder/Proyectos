@@ -1,0 +1,33 @@
+name: Publicar instalador validado
+on:
+  workflow_run:
+    workflows: ['Validar instalación Windows']
+    types: [completed]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  release:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar instalador del mismo commit validado
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          gh run list --repo "$REPO" --workflow windows-installer.yml --commit "$SHA" --status success --json databaseId --jq '.[0].databaseId' > run-id.txt
+          BUILD_ID=$(cat run-id.txt)
+          test -n "$BUILD_ID" && test "$BUILD_ID" != null
+          gh run download "$BUILD_ID" --repo "$REPO" --name GestionIglesiaPro-Setup-Windows-x64 --dir release
+          test -s release/GestionIglesiaPro-Setup-0.1.1.exe
+          sha256sum release/GestionIglesiaPro-Setup-0.1.1.exe | tee release/SHA256SUMS
+      - name: Publicar versión 0.1.1
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          gh release create v0.1.1 release/GestionIglesiaPro-Setup-0.1.1.exe release/SHA256SUMS --repo "$REPO" --target "$SHA" --title 'Gestión Iglesia Pro 0.1.1' --notes 'Corrige la ficha de miembros, incorpora ID de familia automático, selección obligatoria de miembro para oportunidades, panel inicial y preparación manual de aviso individual por WhatsApp. Instalación y humo Windows validados por Actions.'

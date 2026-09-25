@@ -1,5 +1,5 @@
 #define AppName "Gestión Iglesia Pro"
-#define AppVersion "0.1.0"
+#define AppVersion "0.1.1"
 [Setup]
 AppId={{3B96D92D-AC14-4A95-B21F-0D9B8B735C20}
 AppName={#AppName}
@@ -9,7 +9,7 @@ ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
 DefaultGroupName=Gestión Iglesia Pro
 PrivilegesRequired=admin
-OutputBaseFilename=GestionIglesiaPro-Setup-0.1.0
+OutputBaseFilename=GestionIglesiaPro-Setup-0.1.1
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern

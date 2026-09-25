@@ -38,7 +38,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'No se pudo descargar el instalador' }
       - name: Instalar y probar servicios, operaciones y restauración
         shell: pwsh
-        run: ./installer/validate-windows.ps1 -InstallerPath ./installer/Output/GestionIglesiaPro-Setup-0.1.0.exe -DisposableVM
+        run: ./installer/validate-windows.ps1 -InstallerPath ./installer/Output/GestionIglesiaPro-Setup-0.1.1.exe -DisposableVM
       - name: Conservar registro si falla
         if: failure()
         uses: actions/upload-artifact@v4

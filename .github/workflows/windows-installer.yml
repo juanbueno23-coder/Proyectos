@@ -79,6 +79,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: GestionIglesiaPro-Setup-Windows-x64
-          path: installer/Output/GestionIglesiaPro-Setup-0.1.0.exe
+          path: installer/Output/GestionIglesiaPro-Setup-0.1.1.exe
           if-no-files-found: error
           retention-days: 7
