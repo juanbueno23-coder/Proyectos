@@ -16,8 +16,10 @@ $config=Join-Path $data 'database-url.txt'
 New-Item -ItemType Directory -Force $data,(Join-Path $data 'backups') | Out-Null
 icacls $data /inheritance:r /grant:r 'SYSTEM:(OI)(CI)F' 'Administrators:(OI)(CI)F' | Out-Null
 if(!(Test-Path $pgData)){
-  $secret=ConvertTo-SecureString ([guid]::NewGuid().ToString('N')+[guid]::NewGuid().ToString('N')) -AsPlainText -Force
-  $plain=[System.Net.NetworkCredential]::new('', $secret).Password
+  $bytes=New-Object byte[] 32
+  $rng=[System.Security.Cryptography.RandomNumberGenerator]::Create()
+  try {$rng.GetBytes($bytes)} finally {$rng.Dispose()}
+  $plain=[BitConverter]::ToString($bytes).Replace('-','').ToLowerInvariant()
   [System.IO.File]::WriteAllText($pwdFile,$plain)
   try {
     & "$pgBin\initdb.exe" -D $pgData -U iglesia -A scram-sha-256 --pwfile=$pwdFile --encoding=UTF8 --locale=C 2>&1 | Out-File (Join-Path $data 'initdb.log')
