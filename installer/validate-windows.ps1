@@ -7,10 +7,19 @@ $appDir=Join-Path $env:ProgramFiles 'GestionIglesiaPro'
 $data=Join-Path $env:ProgramData 'GestionIglesiaPro'
 if(Test-Path $data){throw 'La VM ya contiene datos. Use una VM nueva para evitar sobrescrituras.'}
 $installer=Resolve-Path $InstallerPath
-$p=Start-Process -FilePath $installer -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',('/LOG='+ (Join-Path $env:TEMP 'iglesia-installer.log'))) -Wait -PassThru
+$logDir=if($env:RUNNER_TEMP){$env:RUNNER_TEMP}else{$env:TEMP}
+$log=Join-Path $logDir 'iglesia-installer.log'
+$p=Start-Process -FilePath $installer -ArgumentList @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',('/LOG='+ $log)) -Wait -PassThru
 if($p.ExitCode -ne 0){throw "Instalador falló ($($p.ExitCode)); revise el registro en TEMP"}
 $services=@('GestionIglesiaPostgres','GestionIglesiaAPI')
-foreach($s in $services){if((Get-Service $s).Status -ne 'Running'){throw "Servicio $s no iniciado"}}
+foreach($s in $services){
+  $current=Get-Service $s -ErrorAction SilentlyContinue
+  if(!$current -or $current.Status -ne 'Running'){
+    Write-Host "Diagnóstico: directorio de aplicación=$(Test-Path $appDir), directorio de datos=$(Test-Path $data), registro=$(Test-Path $log)"
+    if(Test-Path $log){Get-Content $log -Tail 90}
+    throw "Servicio $s no iniciado"
+  }
+}
 $base='http://127.0.0.1:4317'
 if(-not (Invoke-RestMethod "$base/health").ok){throw 'API sin salud'}
 if((Invoke-RestMethod "$base/setup/status").initialized){throw 'La instalación no está vacía'}

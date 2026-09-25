@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/windows-validate.yml'
+      - 'installer/validate-windows.ps1'
   workflow_dispatch:
 permissions:
   actions: read
