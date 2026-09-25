@@ -1,6 +1,6 @@
 # Gestión Iglesia Pro · Iglesia Roca de Salvación
 
-Entrega revisable de código fuente para una aplicación local de Windows. Incluye programación semanal, temas e invitaciones. **No contiene instalador `.exe` compilado ni se probó en Windows**. Consulte [estado de verificación](docs/VERIFICACION.md) antes de usar datos reales.
+Primera entrega instalable para Windows x64. El instalador `GestionIglesiaPro-Setup-0.1.0.exe` contiene Tauri, servicio API, Node y PostgreSQL; funciona localmente sin Internet durante el uso administrativo. Fue compilado y sometido a instalación, operaciones y restauración en una máquina desechable con Windows Server 2022. Consulte [estado de verificación](docs/VERIFICACION.md) antes de usar datos reales.
 
 ## Arquitectura
 
@@ -31,7 +31,7 @@ Abra `http://127.0.0.1:5173`, complete la configuración inicial y cree el admin
 
 Requisitos de compilación: Windows x64, Node 24, Rust estable con target MSVC, Visual Studio C++ Build Tools, WebView2, Inno Setup 6. Reúna binarios Windows x64 confiables de PostgreSQL (distribución ZIP con `bin` y dependencias), Node y WinSW, **compruebe sus hashes oficiales y licencias** y colóquelos en `installer/payload/postgres`, `node/node.exe`, `winsw/service.exe`. Ejecute `powershell -File installer/build-windows.ps1`. Produce `installer/Output/GestionIglesiaPro-Setup-0.1.0.exe` si el build y el empaquetado terminan correctamente. No se incluyen binarios de terceros en el repositorio.
 
-Ejecute el instalador como administrador una sola vez. Durante la instalación genera una clave aleatoria PostgreSQL, crea base y servicios, aplica migraciones e instala accesos directos. El uso cotidiano se realiza sin elevación. En una actualización, el código debe detener el servicio, conservar `ProgramData`, aplicar migraciones, registrar nuevamente el servicio y arrancarlo. **Antes de actualización, haga respaldo externo y verifique el instalador en una PC de pruebas; la ruta Windows no está validada todavía.** La desinstalación conserva `ProgramData` deliberadamente.
+Ejecute el instalador como administrador una sola vez. Durante la instalación genera una clave aleatoria PostgreSQL, crea base y servicios, aplica migraciones e instala accesos directos. El uso cotidiano se realiza sin elevación. En una actualización, el código detiene el servicio, conserva `ProgramData`, aplica migraciones, registra nuevamente el servicio y lo arranca. **La instalación nueva y la restauración pasaron en Windows Server 2022; aún falta probar actualización y desinstalación en un equipo Windows existente.** Antes de actualizar datos reales, haga respaldo externo. La desinstalación conserva `ProgramData` deliberadamente.
 
 ## Operación y recuperación
 
