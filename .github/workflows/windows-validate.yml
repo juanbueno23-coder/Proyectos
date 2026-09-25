@@ -1,5 +1,8 @@
 name: Validar instalación Windows
 on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/windows-validate.yml']
   workflow_run:
     workflows: ['Construir instalador Windows']
     types: [completed]
@@ -43,3 +46,12 @@ jobs:
           name: registro-instalacion-windows
           path: ${{ runner.temp }}/iglesia-installer.log
           if-no-files-found: ignore
+      - name: Diagnosticar servicio si falla
+        if: failure()
+        shell: pwsh
+        run: |
+          $data = Join-Path $env:ProgramData 'GestionIglesiaPro'
+          Get-ChildItem $data -Filter '*.log' -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^service\.' } | ForEach-Object {
+            Write-Host "Registro $($_.Name)"
+            Get-Content $_.FullName -Tail 60
+          }
