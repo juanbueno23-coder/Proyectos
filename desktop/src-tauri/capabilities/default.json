@@ -1,0 +1,1 @@
+{"$schema":"../gen/schemas/desktop-schema.json","identifier":"main-capability","description":"Apertura explícita de mensajes individuales en WhatsApp","windows":["main"],"permissions":["core:default",{"identifier":"opener:allow-open-url","allow":[{"url":"https://wa.me/*"}]}]}
