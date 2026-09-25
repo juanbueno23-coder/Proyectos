@@ -12,6 +12,8 @@
 
 Evidencia de Windows: [compilación exitosa](https://github.com/juanbueno23-coder/Proyectos/actions/runs/36135308972) y [prueba de instalación exitosa](https://github.com/juanbueno23-coder/Proyectos/actions/runs/36136602336). El ejecutor fue `windows-2022` (Windows Server 2022). Su script `installer/validate-windows.ps1` instaló el `.exe` en una VM descartable, verificó servicios y API, ejecutó `tests/smoke.mjs`, creó respaldo, restauró la base con `installer/restore.ps1`, comprobó el miembro recuperado y la auditoría externa. No se probó abrir la ventana Tauri de forma interactiva.
 
+La [descarga directa de GitHub Releases](https://github.com/juanbueno23-coder/Proyectos/releases/tag/v0.1.0) publica el mismo `.exe`; GitHub informa 268 696 147 bytes y el SHA-256 indicado abajo. Una copia entregada por otro canal resultó truncada a 88 449 024 bytes y provocó «The setup files are corrupted». Descarte esa copia y verifique el hash de la nueva antes de ejecutarla.
+
 Evidencia local: `npm run typecheck`, `npm test` (8/8), `npm run build` y humo con PostgreSQL 16 temporal. El ZIP del artefacto validado coincidió con el SHA-256 publicado por GitHub: `c7688ebb3005a9ca7d6e8f37a5f737605a6eac1aaf62292a563075f0bc19c973`. SHA-256 del `.exe`: `b15d173212136bdfdecb7bbff7a8172d48339acb7f2efc1625ee4a1cc32c260e`.
 
 Para repetir en una VM Windows x64 descartable con Node 24, descargue el artefacto del flujo de compilación y ejecute PowerShell elevado desde la raíz del repositorio:

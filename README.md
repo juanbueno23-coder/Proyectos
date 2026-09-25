@@ -2,6 +2,8 @@
 
 Primera entrega instalable para Windows x64. El instalador `GestionIglesiaPro-Setup-0.1.0.exe` contiene Tauri, servicio API, Node y PostgreSQL; funciona localmente sin Internet durante el uso administrativo. Fue compilado y sometido a instalación, operaciones y restauración en una máquina desechable con Windows Server 2022. Consulte [estado de verificación](docs/VERIFICACION.md) antes de usar datos reales.
 
+**Descarga directa comprobada:** [GestionIglesiaPro-Setup-0.1.0.exe](https://github.com/juanbueno23-coder/Proyectos/releases/download/v0.1.0/GestionIglesiaPro-Setup-0.1.0.exe) (268 696 147 bytes, SHA-256 `b15d173212136bdfdecb7bbff7a8172d48339acb7f2efc1625ee4a1cc32c260e`). Compruebe en PowerShell: `Get-FileHash -Algorithm SHA256 .\GestionIglesiaPro-Setup-0.1.0.exe`. Si el tamaño o hash no coinciden, descarte esa descarga y obtenga otra copia desde GitHub Releases.
+
 ## Arquitectura
 
 - Tauri 2 envuelve la interfaz React, TypeScript y Tailwind; solo accede a la API local `127.0.0.1:4317`.
