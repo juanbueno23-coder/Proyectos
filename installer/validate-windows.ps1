@@ -16,6 +16,10 @@ foreach($s in $services){
   $current=Get-Service $s -ErrorAction SilentlyContinue
   if(!$current -or $current.Status -ne 'Running'){
     Write-Host "Diagnóstico: directorio de aplicación=$(Test-Path $appDir), directorio de datos=$(Test-Path $data), registro=$(Test-Path $log)"
+    foreach($name in @('install-error.log','initdb.log')){
+      $detail=Join-Path $data $name
+      if(Test-Path $detail){Write-Host "Registro $name";Get-Content $detail -Tail 30}
+    }
     if(Test-Path $log){Get-Content $log -Tail 90}
     throw "Servicio $s no iniciado"
   }

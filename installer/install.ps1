@@ -1,5 +1,11 @@
 param([Parameter(Mandatory=$true)][string]$AppDir)
 $ErrorActionPreference='Stop'
+trap {
+  $safe=($_.Exception.Message -replace 'postgres(?:ql)?://[^\s]+','[URL DE BASE OMITIDA]')
+  $diagnostic=Join-Path $env:ProgramData 'GestionIglesiaPro\install-error.log'
+  try {Add-Content -Path $diagnostic -Value "$(Get-Date -Format o) línea $($_.InvocationInfo.ScriptLineNumber): $safe"} catch {}
+  exit 1
+}
 $data=Join-Path $env:ProgramData 'GestionIglesiaPro'
 $pgData=Join-Path $data 'postgres'
 $pgBin=Join-Path $AppDir 'postgres\bin'
@@ -14,7 +20,7 @@ if(!(Test-Path $pgData)){
   $plain=[System.Net.NetworkCredential]::new('', $secret).Password
   [System.IO.File]::WriteAllText($pwdFile,$plain)
   try {
-    & "$pgBin\initdb.exe" -D $pgData -U iglesia -A scram-sha-256 --pwfile=$pwdFile --encoding=UTF8 --locale=C
+    & "$pgBin\initdb.exe" -D $pgData -U iglesia -A scram-sha-256 --pwfile=$pwdFile --encoding=UTF8 --locale=C 2>&1 | Out-File (Join-Path $data 'initdb.log')
     if($LASTEXITCODE -ne 0){throw 'initdb falló'}
     Add-Content (Join-Path $pgData 'postgresql.conf') "`nlisten_addresses = '127.0.0.1'`nport = 54339`n"
     & "$pgBin\pg_ctl.exe" register -N GestionIglesiaPostgres -D $pgData -S auto
