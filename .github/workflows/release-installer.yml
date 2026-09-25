@@ -1,0 +1,29 @@
+name: Publicar instalador verificado
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/release-installer.yml']
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Descargar el build que pasó la instalación Windows
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p release
+          gh run download 36135308972 --name GestionIglesiaPro-Setup-Windows-x64 --dir release
+          echo 'b15d173212136bdfdecb7bbff7a8172d48339acb7f2efc1625ee4a1cc32c260e  release/GestionIglesiaPro-Setup-0.1.0.exe' | sha256sum -c -
+      - name: Publicar descarga directa
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v0.1.0 release/GestionIglesiaPro-Setup-0.1.0.exe \
+            --target 76ab2f41ea7355b0db54dce9757d3225f824d7ef \
+            --title 'Gestión Iglesia Pro 0.1.0' \
+            --notes 'Instalador Windows x64. Compilación y prueba de instalación, servicios, respaldo y restauración completadas en Windows Server 2022. SHA-256: b15d173212136bdfdecb7bbff7a8172d48339acb7f2efc1625ee4a1cc32c260e. Falta prueba visual interactiva y actualización sobre datos existentes.'
