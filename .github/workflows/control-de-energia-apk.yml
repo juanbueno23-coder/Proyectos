@@ -1,4 +1,4 @@
-name: Compilar Control de Energía Android v2.1
+name: Compilar Control de Energía Android v2.1.1 instalación corregida
 on:
   push:
     branches: [control-de-energia-v2-20261114]
@@ -67,11 +67,25 @@ jobs:
           update(g,"    versionCode 20\n    versionName '2.0.0'","    versionCode 21\n    versionName '2.1.0'\n    buildConfigField 'String', 'MICROSOFT_CLIENT_ID', '\\\"' + microsoftClientId + '\\\"'")
           print("Outlook email-only patch complete")
           PY
+      - name: Evitar conflicto de firma con versiones anteriores
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("android-build/app/build.gradle")
+          s=p.read_text()
+          original="applicationId 'com.controlenergia.app'"
+          if original not in s: raise RuntimeError("No se encontro el paquete original")
+          s=s.replace(original,"applicationId 'com.controlenergia.instalable'",1)
+          s=s.replace("versionCode 21","versionCode 22",1)
+          s=s.replace("versionName '2.1.0'","versionName '2.1.1'",1)
+          p.write_text(s)
+          print("ID aislado:", "com.controlenergia.instalable")
+          PY
       - name: Compilar APK Android
         working-directory: android-build
         run: gradle --no-daemon --stacktrace :app:assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: Control-de-Energia-v2-1-APK
+          name: Control-de-Energia-v2-1-1-instalable-APK
           path: android-build/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
