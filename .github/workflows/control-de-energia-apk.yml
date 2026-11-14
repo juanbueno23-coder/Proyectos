@@ -24,6 +24,14 @@ jobs:
           ls "$ANDROID_HOME/platforms"
           ls "$ANDROID_HOME/build-tools"
           test -f android-build/app/src/main/AndroidManifest.xml
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("android-build/app/build.gradle")
+          s = p.read_text()
+          extra = "  packaging { resources { excludes += ['META-INF/NOTICE.md', 'META-INF/LICENSE.md', 'META-INF/NOTICE', 'META-INF/LICENSE'] } }\n"
+          s = s.replace("  compileOptions {", extra + "  compileOptions {")
+          p.write_text(s)
+          PY
       - name: Compilar APK Android
         working-directory: android-build
         run: gradle --no-daemon --stacktrace :app:assembleDebug
