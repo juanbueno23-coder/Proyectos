@@ -24,6 +24,7 @@ jobs:
           ls "$ANDROID_HOME/platforms"
           ls "$ANDROID_HOME/build-tools"
           test -f android-build/app/src/main/AndroidManifest.xml
+          sed -i 's/private void event(String type,JSONObject payload)/private void event(String type,Object payload)/' android-build/app/src/main/java/com/controlenergia/app/EnergyMailController.java
           python3 - <<'PY'
           from pathlib import Path
           p = Path("android-build/app/build.gradle")
