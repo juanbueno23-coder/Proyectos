@@ -1,0 +1,37 @@
+name: Compilar Edesur Control Pro APK
+on:
+  push:
+    branches: [edesur-control-pro-apk-20261114]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Extraer proyecto Android y corregir paquete Java
+        run: |
+          mkdir -p android-build
+          base64 -d edesur-control-pro/source.tar.gz.base64 | tar -xz -C android-build
+          cd android-build
+          mkdir -p app/src/main/java/com/edesur
+          mv app/src/main/java/do/edesur/controlpro app/src/main/java/com/edesur/controlpro
+          rm -rf app/src/main/java/do
+          sed -i 's/do\.edesur\.controlpro/com.edesur.controlpro/g' app/build.gradle app/src/main/AndroidManifest.xml app/src/main/java/com/edesur/controlpro/*.java
+      - name: Compilar APK
+        working-directory: android-build
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EDESUR-Control-Pro-APK
+          path: android-build/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
