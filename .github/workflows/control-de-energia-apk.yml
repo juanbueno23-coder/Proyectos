@@ -1,10 +1,12 @@
-name: Compilar Control de Energía Android v2.1.1 instalación corregida
+name: Validar Control de Energía Android 2.2.0
+
 on:
   push:
     branches: [control-de-energia-v2-20261114]
   workflow_dispatch:
+
 jobs:
-  build:
+  test-and-build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -17,75 +19,24 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Extraer fuente y comprobar entorno
+      - name: Extraer fuente Android
         run: |
           mkdir -p android-build
           base64 -d control-de-energia/source.tar.gz.base64 | tar -xz -C android-build
-          ls "$ANDROID_HOME/platforms"
-          ls "$ANDROID_HOME/build-tools"
           test -f android-build/app/src/main/AndroidManifest.xml
-          sed -i 's/private void event(String type,JSONObject payload)/private void event(String type,Object payload)/' android-build/app/src/main/java/com/controlenergia/app/EnergyMailController.java
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path("android-build/app/build.gradle")
-          s = p.read_text()
-          extra = "  packaging { resources { excludes += ['META-INF/NOTICE.md', 'META-INF/LICENSE.md', 'META-INF/NOTICE', 'META-INF/LICENSE'] } }\n"
-          s = s.replace("  compileOptions {", extra + "  compileOptions {")
-          p.write_text(s)
-          PY
-      - name: Outlook solo correo (sin ID técnico para el usuario)
-        env:
-          CONTROL_ENERGIA_MS_CLIENT_ID: ${{ vars.CONTROL_ENERGIA_MS_CLIENT_ID }}
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          r=Path("android-build")
-          def update(file, old, new):
-              p=r/file
-              s=p.read_text(encoding="utf-8")
-              if old not in s: raise RuntimeError("Missing block in "+file+": "+old[:40])
-              p.write_text(s.replace(old,new,1),encoding="utf-8")
-          h="app/src/main/assets/index.html"
-          update(h, 'Conexión por código de Microsoft. El propietario debe registrar una aplicación con permiso Mail.Read y permitir clientes públicos. No solicita la contraseña.', 'Escribe tu correo. Microsoft solicitará la autorización oficial; no escribas aquí tu contraseña.')
-          update(h, '<label for="energyMicrosoftClient">ID público de aplicación Microsoft Entra</label><input id="energyMicrosoftClient" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocapitalize="off">', '<label for="energyMicrosoftEmail">Correo Outlook, Hotmail o Microsoft 365</label><input id="energyMicrosoftEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" placeholder="usuario@outlook.com">')
-          update(h, 'id="energyMicrosoftConnect">Conectar con Microsoft', 'id="energyMicrosoftConnect">Conectar mi correo Microsoft')
-          j="app/src/main/assets/energy-mail.js"
-          update(j, "const id=$('#energyMicrosoftClient').value.trim();localStorage.setItem('energy_ms_client_id',id);api.energyConnectMicrosoft(id);return;", "const email=$('#energyMicrosoftEmail').value.trim().toLowerCase();if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email))return toast('Introduce un correo válido');api.energyConnectMicrosoft(email);return;")
-          update(j, "clearInterval(energyStartup);$('#energyMicrosoftClient').value=localStorage.getItem('energy_ms_client_id')||'';", "clearInterval(energyStartup);")
-          a="app/src/main/java/com/controlenergia/app/EnergyMailController.java"
-          old='public void connectMicrosoft(String clientId){if(clientId==null||!clientId.matches("[a-fA-F0-9-]{36}")){fail("Falta el ID de aplicación Microsoft registrado en Entra");return;}'
-          new='public void connectMicrosoft(String email){String wanted=email==null?"":email.trim().toLowerCase(java.util.Locale.ROOT);if(!wanted.matches("[^\\\\s@]+@[^\\\\s@]+\\\\.[^\\\\s@]+")){fail("Introduce un correo válido");return;}String clientId=BuildConfig.MICROSOFT_CLIENT_ID;if(!clientId.matches("[a-fA-F0-9-]{36}")){fail("El desarrollador debe activar la conexión de Outlook en Microsoft. No se necesita contraseña.");return;}'
-          update(a,old,new)
-          update(a,"new Thread(()->deviceFlow(clientId)).start();","new Thread(()->deviceFlow(clientId,wanted)).start();")
-          update(a,"private void deviceFlow(String clientId){try{","private void deviceFlow(String clientId,String expectedEmail){try{")
-          update(a, '.put("verification_uri",request.getString("verification_uri")).put("expires_in",request.optInt("expires_in",900));', '.put("verification_uri",request.getString("verification_uri")).put("expires_in",request.optInt("expires_in",900)).put("email",expectedEmail);')
-          update(a, 'String email=profile.optString("mail",profile.optString("userPrincipalName"));if(email.isEmpty())throw new IllegalStateException("Microsoft no devolvió dirección de correo");','String email=profile.optString("mail");if(email.trim().isEmpty())email=profile.optString("userPrincipalName");if(email.trim().isEmpty())throw new IllegalStateException("Microsoft no devolvió dirección de correo");if(!expectedEmail.equalsIgnoreCase(email.trim()))throw new IllegalStateException("La cuenta autorizada no coincide con "+expectedEmail);')
-          update("app/src/main/java/com/controlenergia/app/MainActivity.java","energyConnectMicrosoft(String client){energyMail.connectMicrosoft(client);","energyConnectMicrosoft(String email){energyMail.connectMicrosoft(email);")
-          g="app/build.gradle"
-          update(g, "plugins { id 'com.android.application' }","plugins { id 'com.android.application' }\ndef microsoftClientId = (project.findProperty('microsoftClientId') ?: System.getenv('CONTROL_ENERGIA_MS_CLIENT_ID') ?: '').toString().trim()")
-          update(g,"  compileSdk 35","  compileSdk 35\n  buildFeatures { buildConfig true }")
-          update(g,"    versionCode 20\n    versionName '2.0.0'","    versionCode 21\n    versionName '2.1.0'\n    buildConfigField 'String', 'MICROSOFT_CLIENT_ID', '\\\"' + microsoftClientId + '\\\"'")
-          print("Outlook email-only patch complete")
-          PY
-      - name: Evitar conflicto de firma con versiones anteriores
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path("android-build/app/build.gradle")
-          s=p.read_text()
-          original="applicationId 'com.controlenergia.app'"
-          if original not in s: raise RuntimeError("No se encontro el paquete original")
-          s=s.replace(original,"applicationId 'com.controlenergia.instalable'",1)
-          s=s.replace("versionCode 21","versionCode 22",1)
-          s=s.replace("versionName '2.1.0'","versionName '2.1.1'",1)
-          p.write_text(s)
-          print("ID aislado:", "com.controlenergia.instalable")
-          PY
-      - name: Compilar APK Android
+          test -f android-build/app/src/test/java/com/controlenergia/app/EnergyMailVaultTest.java
+      - name: Pruebas, análisis y APK de integración
         working-directory: android-build
-        run: gradle --no-daemon --stacktrace :app:assembleDebug
+        run: gradle --no-daemon testDebugUnitTest lintDebug assembleDebug
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: Control-de-Energia-v2-1-1-instalable-APK
-          path: android-build/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+          name: Control-de-Energia-2.2.0-validacion
+          path: |
+            android-build/app/build/test-results/testDebugUnitTest/
+            android-build/app/build/reports/lint-results-debug.*
+            android-build/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: warn
+
+# El APK público de CI usa una firma temporal y NO sirve para actualizaciones estables.
+# La clave privada de desarrollo se conserva fuera del repositorio y nunca se sube a GitHub.
