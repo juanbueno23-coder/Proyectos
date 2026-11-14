@@ -39,46 +39,33 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
           r=Path("android-build")
-          def update(relative,old,new):
-              p=r/relative
-              s=p.read_text()
-              if old not in s: raise RuntimeError("Bloque no encontrado: "+relative+" : "+old[:35])
-              p.write_text(s.replace(old,new,1))
+          def update(file, old, new):
+              p=r/file
+              s=p.read_text(encoding="utf-8")
+              if old not in s: raise RuntimeError("Missing block in "+file+": "+old[:40])
+              p.write_text(s.replace(old,new,1),encoding="utf-8")
           h="app/src/main/assets/index.html"
-          update(h, '<p class="small muted">Conexión por código de Microsoft. El propietario debe registrar una aplicación con permiso Mail.Read y permitir clientes públicos. No solicita la contraseña.</p>', '<p class="small muted">Escribe tu correo. Microsoft solicitará la autorización oficial; nunca escribas aquí la contraseña.</p>')
+          update(h, 'Conexión por código de Microsoft. El propietario debe registrar una aplicación con permiso Mail.Read y permitir clientes públicos. No solicita la contraseña.', 'Escribe tu correo. Microsoft solicitará la autorización oficial; no escribas aquí tu contraseña.')
           update(h, '<label for="energyMicrosoftClient">ID público de aplicación Microsoft Entra</label><input id="energyMicrosoftClient" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocapitalize="off">', '<label for="energyMicrosoftEmail">Correo Outlook, Hotmail o Microsoft 365</label><input id="energyMicrosoftEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" placeholder="usuario@outlook.com">')
-          update(h, '<button class="primary" id="energyMicrosoftConnect">Conectar con Microsoft</button>', '<button class="primary" id="energyMicrosoftConnect">Conectar mi correo Microsoft</button>')
+          update(h, 'id="energyMicrosoftConnect">Conectar con Microsoft', 'id="energyMicrosoftConnect">Conectar mi correo Microsoft')
           j="app/src/main/assets/energy-mail.js"
           update(j, "const id=$('#energyMicrosoftClient').value.trim();localStorage.setItem('energy_ms_client_id',id);api.energyConnectMicrosoft(id);return;", "const email=$('#energyMicrosoftEmail').value.trim().toLowerCase();if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email))return toast('Introduce un correo válido');api.energyConnectMicrosoft(email);return;")
           update(j, "clearInterval(energyStartup);$('#energyMicrosoftClient').value=localStorage.getItem('energy_ms_client_id')||'';", "clearInterval(energyStartup);")
-          update(j, 'target="_blank" rel="noopener"', 'rel="noopener"')
           a="app/src/main/java/com/controlenergia/app/EnergyMailController.java"
-          old='''    public void connectMicrosoft(String clientId){if(clientId==null||!clientId.matches("[a-fA-F0-9-]{36}")){fail("Falta el ID de aplicación Microsoft registrado en Entra");return;}
-                  new Thread(()->deviceFlow(clientId)).start();}
-              private void deviceFlow(String clientId){try{'''
-          new=r'''    public void connectMicrosoft(String email){
-                  final String wanted=email==null?"":email.trim().toLowerCase(java.util.Locale.ROOT);
-                  if(!wanted.matches("[^\\s@]+@[^\\s@]+\\.[^\\s@]+")){fail("Introduce un correo válido");return;}
-                  final String clientId=BuildConfig.MICROSOFT_CLIENT_ID;
-                  if(clientId==null||!clientId.matches("[a-fA-F0-9-]{36}")){fail("Outlook requiere que el desarrollador active la aplicación en Microsoft. Solo necesitas tu correo y autorizarlo.");return;}
-                  new Thread(()->deviceFlow(clientId,wanted)).start();
-              }
-              private void deviceFlow(String clientId,String expectedEmail){try{'''
+          old='public void connectMicrosoft(String clientId){if(clientId==null||!clientId.matches("[a-fA-F0-9-]{36}")){fail("Falta el ID de aplicación Microsoft registrado en Entra");return;}'
+          new='public void connectMicrosoft(String email){String wanted=email==null?"":email.trim().toLowerCase(java.util.Locale.ROOT);if(!wanted.matches("[^\\\\s@]+@[^\\\\s@]+\\\\.[^\\\\s@]+")){fail("Introduce un correo válido");return;}String clientId=BuildConfig.MICROSOFT_CLIENT_ID;if(!clientId.matches("[a-fA-F0-9-]{36}")){fail("El desarrollador debe activar la conexión de Outlook en Microsoft. No se necesita contraseña.");return;}'
           update(a,old,new)
+          update(a,"new Thread(()->deviceFlow(clientId)).start();","new Thread(()->deviceFlow(clientId,wanted)).start();")
+          update(a,"private void deviceFlow(String clientId){try{","private void deviceFlow(String clientId,String expectedEmail){try{")
           update(a, '.put("verification_uri",request.getString("verification_uri")).put("expires_in",request.optInt("expires_in",900));', '.put("verification_uri",request.getString("verification_uri")).put("expires_in",request.optInt("expires_in",900)).put("email",expectedEmail);')
-          update(a, 'String email=profile.optString("mail",profile.optString("userPrincipalName"));if(email.isEmpty())throw new IllegalStateException("Microsoft no devolvió dirección de correo");', 'String email=profile.optString("mail");if(email.trim().isEmpty())email=profile.optString("userPrincipalName");if(email.trim().isEmpty())throw new IllegalStateException("Microsoft no devolvió dirección de correo");if(!expectedEmail.equalsIgnoreCase(email.trim()))throw new IllegalStateException("La cuenta autorizada ("+email+") no coincide con "+expectedEmail);')
-          update("app/src/main/java/com/controlenergia/app/MainActivity.java", '@JavascriptInterface public void energyConnectMicrosoft(String client){energyMail.connectMicrosoft(client);}', '@JavascriptInterface public void energyConnectMicrosoft(String email){energyMail.connectMicrosoft(email);}')
+          update(a, 'String email=profile.optString("mail",profile.optString("userPrincipalName"));if(email.isEmpty())throw new IllegalStateException("Microsoft no devolvió dirección de correo");','String email=profile.optString("mail");if(email.trim().isEmpty())email=profile.optString("userPrincipalName");if(email.trim().isEmpty())throw new IllegalStateException("Microsoft no devolvió dirección de correo");if(!expectedEmail.equalsIgnoreCase(email.trim()))throw new IllegalStateException("La cuenta autorizada no coincide con "+expectedEmail);')
+          update("app/src/main/java/com/controlenergia/app/MainActivity.java","energyConnectMicrosoft(String client){energyMail.connectMicrosoft(client);","energyConnectMicrosoft(String email){energyMail.connectMicrosoft(email);")
           g="app/build.gradle"
-          update(g, "plugins { id 'com.android.application' }", """plugins { id 'com.android.application' }
-          def microsoftClientId = (project.findProperty('microsoftClientId') ?: System.getenv('CONTROL_ENERGIA_MS_CLIENT_ID') ?: '').toString().trim()
-          if (microsoftClientId && !(microsoftClientId ==~ /[a-fA-F0-9-]{36}/)) throw new GradleException('ID Microsoft inválido')""")
-          update(g, "  compileSdk 35", "  compileSdk 35\n  buildFeatures {buildConfig true}")
-          update(g, "    versionCode 20\n    versionName '2.0.0'", """    versionCode 21
-              versionName '2.1.0'
-              buildConfigField 'String', 'MICROSOFT_CLIENT_ID', '"' + microsoftClientId + '"'""")
-          print("Cambio Outlook correo solamente verificado")
+          update(g, "plugins { id 'com.android.application' }","plugins { id 'com.android.application' }\ndef microsoftClientId = (project.findProperty('microsoftClientId') ?: System.getenv('CONTROL_ENERGIA_MS_CLIENT_ID') ?: '').toString().trim()")
+          update(g,"  compileSdk 35","  compileSdk 35\n  buildFeatures { buildConfig true }")
+          update(g,"    versionCode 20\n    versionName '2.0.0'","    versionCode 21\n    versionName '2.1.0'\n    buildConfigField 'String', 'MICROSOFT_CLIENT_ID', '\\\"' + microsoftClientId + '\\\"'")
+          print("Outlook email-only patch complete")
                     PY
       - name: Compilar APK Android
         working-directory: android-build
