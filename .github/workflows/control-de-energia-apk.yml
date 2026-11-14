@@ -66,7 +66,7 @@ jobs:
           update(g,"  compileSdk 35","  compileSdk 35\n  buildFeatures { buildConfig true }")
           update(g,"    versionCode 20\n    versionName '2.0.0'","    versionCode 21\n    versionName '2.1.0'\n    buildConfigField 'String', 'MICROSOFT_CLIENT_ID', '\\\"' + microsoftClientId + '\\\"'")
           print("Outlook email-only patch complete")
-                    PY
+          PY
       - name: Compilar APK Android
         working-directory: android-build
         run: gradle --no-daemon --stacktrace :app:assembleDebug
