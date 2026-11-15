@@ -50,3 +50,28 @@ jobs:
           name: Control-de-Energia-v2-9-Comparador-APK-PRUEBAS
           path: android-build/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      - name: Preparar instalacion paralela sin borrar datos de la version anterior
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          gradle=Path("android-build/app/build.gradle")
+          text=gradle.read_text()
+          before="applicationId 'com.controlenergia.multiai253'"
+          assert before in text
+          gradle.write_text(text.replace(before,"applicationId 'com.controlenergia.comparador29'",1))
+          manifest=Path("android-build/app/src/main/AndroidManifest.xml")
+          text=manifest.read_text()
+          before='android:label="Control de Energía"'
+          assert before in text
+          manifest.write_text(text.replace(before,'android:label="Energía 2.9 (pruebas)"',1))
+          print("Parallel app ID verified")
+          PY
+      - name: Compilar APK paralelo conservando la version anterior
+        working-directory: android-build
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Control-de-Energia-v2-9-APK-PARALELO-SIN-DESINSTALAR
+          path: android-build/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
