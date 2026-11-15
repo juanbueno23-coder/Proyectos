@@ -1,0 +1,44 @@
+name: Control de Energia v2.6 tarifas completas y diagnostico Gemini
+on:
+  push:
+    branches: [control-de-energia-tarifas-gemini-v26]
+  workflow_dispatch:
+jobs:
+  validate-android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Extraer fuente v2.6 sin datos privados
+        run: |
+          mkdir -p android-build
+          base64 -d control-de-energia/source-v26.tar.gz.base64 | tar -xz -C android-build
+          test -f android-build/app/src/main/AndroidManifest.xml
+          test -f android-build/tests/test_v26.cjs
+      - name: Validar lector, tramos, subsidio y Gemini
+        working-directory: android-build
+        run: |
+          node --check app/src/main/assets/app.js
+          node --check app/src/main/assets/energy-mail.js
+          node --check app/src/main/assets/energy-ai.js
+          node tests/test_v26.cjs
+          node tests/test_invoice_parser_v24.js
+          node tests/test_multi_ai_v253.cjs
+          node tests/test_v25.cjs
+          node tests/verificar.js
+      - name: Compilar APK
+        working-directory: android-build
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Control-de-Energia-v2-6-APK-PRUEBAS-NO-ACTUALIZACION
+          path: android-build/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
