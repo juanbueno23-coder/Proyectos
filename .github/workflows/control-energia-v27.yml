@@ -22,6 +22,7 @@ jobs:
           mkdir -p android-build
           base64 -d control-de-energia/source-v27.tar.gz.base64 | tar -xz -C android-build
           test -f android-build/tests/test_v27.cjs
+          printf '\nandroid.useAndroidX=true\n' >> android-build/gradle.properties
       - name: Probar lector, API Gemini, y cuentas
         working-directory: android-build
         run: |
