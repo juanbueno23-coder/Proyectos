@@ -1,0 +1,42 @@
+name: Compilar Control de Energia v2.3 - verificacion EDESUR
+on:
+  push:
+    branches: [control-de-energia-verificacion-v23]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Extraer fuente de Control de Energia 2.3
+        run: |
+          mkdir -p android-build
+          base64 -d control-de-energia/source-v23.tar.gz.base64 | tar -xz -C android-build
+          test -f android-build/app/src/main/AndroidManifest.xml
+          test -f android-build/app/src/main/java/com/controlenergia/app/EdesurMailMatcher.java
+      - name: Validar filtros oficiales de EDESUR
+        run: |
+          node --check android-build/app/src/main/assets/app.js
+          node --check android-build/app/src/main/assets/energy-mail.js
+          node --check android-build/app/src/main/assets/edesur-validation.js
+          node android-build/tests/verificar.js
+          mkdir -p java-test
+          javac -d java-test android-build/app/src/main/java/com/controlenergia/app/EdesurMailMatcher.java android-build/tests/MailMatcherTest.java
+          java -cp java-test MailMatcherTest
+      - name: Compilar Android
+        working-directory: android-build
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Control-de-Energia-v2-3-EDESUR-APK
+          path: android-build/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
