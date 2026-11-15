@@ -1,0 +1,52 @@
+name: Control de Energia 2.9 - Comparador Inteligente de Consumo
+on:
+  push:
+    branches: [control-de-energia-comparador-v29]
+  workflow_dispatch:
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Extraer el proyecto Android v2.9
+        run: |
+          mkdir -p android-build
+          base64 -d control-de-energia/source-v29.tar.gz.base64 | tar -xz -C android-build
+          grep -q "versionCode 35" android-build/app/build.gradle
+          grep -q "com.controlenergia.multiai253" android-build/app/build.gradle
+          test -f android-build/app/src/main/assets/energy-comparator.js
+          test -f android-build/app/src/main/assets/energy-comparison-ui.js
+      - name: Pruebas de comparador, duplicados y regresiones
+        working-directory: android-build
+        run: |
+          node --check app/src/main/assets/app.js
+          node --check app/src/main/assets/energy-comparator.js
+          node --check app/src/main/assets/energy-comparison-ui.js
+          node --check app/src/main/assets/sw.js
+          node tests/test_energy_comparator.cjs
+          node tests/test_duplicate_merge.cjs
+          node tests/test_duplicates_synthetic.cjs
+          node tests/test_v28.cjs
+          node tests/test_v27.cjs
+          node tests/test_v26.cjs
+          node tests/test_invoice_parser_v24.js
+          node tests/test_multi_ai_v253.cjs
+          node tests/test_v25.cjs
+          node tests/verificar.js
+      - name: Compilar APK Android
+        working-directory: android-build
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Control-de-Energia-v2-9-Comparador-APK-PRUEBAS
+          path: android-build/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
