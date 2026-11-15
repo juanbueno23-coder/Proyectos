@@ -1,0 +1,55 @@
+name: Control de Energia 2.8.1 - Facturas duplicadas EDESUR
+on:
+  push:
+    branches: [control-de-energia-duplicados-v281-20261115]
+  workflow_dispatch:
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Descomprimir proyecto sin facturas privadas
+        run: |
+          mkdir -p android-build
+          base64 -d control-de-energia/source-v281.tar.gz.base64 | tar -xz -C android-build
+          test -f android-build/app/src/main/AndroidManifest.xml
+          test -f android-build/tests/test_duplicate_merge.cjs
+          grep -q "pdf-portal-duplicado" android-build/app/src/main/assets/app.js
+      - name: Pruebas del lector, tramos y conservacion de duplicados
+        working-directory: android-build
+        run: |
+          node --check app/src/main/assets/app.js
+          node --check app/src/main/assets/energy-mail.js
+          node tests/test_duplicate_merge.cjs
+          node tests/test_duplicates_synthetic.cjs
+          node tests/test_v28.cjs
+          node tests/test_v27.cjs
+          node tests/test_v26.cjs
+          node tests/test_v25.cjs
+          node tests/test_multi_ai_v253.cjs
+          node tests/test_invoice_parser_v24.js
+          node tests/verificar.js
+      - name: Compilar APK Android
+        working-directory: android-build
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
+      - name: Inspeccionar paquete y firma del APK
+        run: |
+          APK=android-build/app/build/outputs/apk/debug/app-debug.apk
+          BT=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)
+          "$BT/aapt" dump badging "$APK" | head -n 6
+          "$BT/apksigner" verify --verbose "$APK"
+          sha256sum "$APK"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Control-de-Energia-v2-8-1-Duplicados-APK
+          path: android-build/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
