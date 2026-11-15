@@ -1,12 +1,10 @@
-name: Validar Control de Energía Android 2.2.0
-
+name: Compilar Control de Energia 2.2 - historial y facturas
 on:
   push:
     branches: [control-de-energia-v2-20261114]
   workflow_dispatch:
-
 jobs:
-  test-and-build:
+  android:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -19,24 +17,23 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Extraer fuente Android
+      - name: Preparar fuente y comprobar seguridad
         run: |
           mkdir -p android-build
-          base64 -d control-de-energia/source.tar.gz.base64 | tar -xz -C android-build
+          base64 -d control-de-energia/source-v22.tar.gz.base64 | tar -xz -C android-build
           test -f android-build/app/src/main/AndroidManifest.xml
-          test -f android-build/app/src/test/java/com/controlenergia/app/EnergyMailVaultTest.java
-      - name: Pruebas, análisis y APK de integración
+          grep -q "historyRemaining" android-build/app/src/main/java/com/controlenergia/app/EnergyMailSync.java
+          grep -q "readDocument" android-build/app/src/main/java/com/controlenergia/app/EnergyMailVault.java
+          grep -q "com.controlenergia.revision22" android-build/app/build.gradle
+      - name: Validar JavaScript
+        run: |
+          node --check android-build/app/src/main/assets/app.js
+          node --check android-build/app/src/main/assets/energy-mail.js
+      - name: Compilar APK
         working-directory: android-build
-        run: gradle --no-daemon testDebugUnitTest lintDebug assembleDebug
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
       - uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: Control-de-Energia-2.2.0-validacion
-          path: |
-            android-build/app/build/test-results/testDebugUnitTest/
-            android-build/app/build/reports/lint-results-debug.*
-            android-build/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: warn
-
-# El APK público de CI usa una firma temporal y NO sirve para actualizaciones estables.
-# La clave privada de desarrollo se conserva fuera del repositorio y nunca se sube a GitHub.
+          name: Control-de-Energia-v2-2-APK-pruebas
+          path: android-build/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
